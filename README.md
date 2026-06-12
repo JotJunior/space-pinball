@@ -1,0 +1,79 @@
+# Space Cadet Pinball (Web)
+
+A TypeScript + Canvas 2D reimplementation of the classic Windows XP Space Cadet 3D Pinball.
+
+> **Note:** This project contains no original assets from the Windows XP game. All graphics,
+> audio, and code are original implementations inspired by the gameplay.
+
+---
+
+## How to Run
+
+```bash
+# Install dependencies
+npm install
+
+# Run locally (no bundler needed — ES modules work natively)
+npx serve .
+
+# Open browser at http://localhost:3000
+```
+
+## Controls
+
+| Key | Action |
+|-----|--------|
+| `Z` or `←` | Left flipper |
+| `/` or `→` | Right flipper |
+| `Space` | Launch ball / Start game |
+| `X` | Tilt |
+| `M` | Toggle mute |
+
+## Development
+
+```bash
+# TypeScript type-check (watch mode)
+npx tsc --noEmit --watch
+
+# Run tests
+npm test
+
+# Run tests with coverage
+npm run test:coverage
+```
+
+## Project Structure
+
+```
+src/
+  config/       physics.ts, table.ts, missions.ts, scoring.ts
+  physics/      shapes.ts, collision.ts, Ball.ts, Flipper.ts, PhysicsEngine.ts
+  game/         GameState.ts, MissionManager.ts, InputHandler.ts
+  renderer/     TableRenderer.ts, HUDRenderer.ts, ScreenRenderer.ts
+  audio/        SoundSynth.ts, AudioManager.ts
+  persistence/  HighScore.ts
+  main.ts
+
+tests/
+  physics/      ball.test.ts, collision.test.ts, flipper.test.ts
+  game/         mission.test.ts
+```
+
+## Calibration
+
+- Physics constants: `src/config/physics.ts` (gravity, elasticity, friction)
+- Table geometry: `src/config/table.ts` (bumper positions, flipper pivots, wall layout)
+- Scoring: `src/config/scoring.ts` (points per event, thresholds)
+- Missions: `src/config/missions.ts` (objective counts, rank progression)
+
+## Browsers Tested
+
+- Chrome (latest)
+- Firefox (latest)
+- Safari 16+ (macOS) — AudioContext requires user gesture to activate
+
+## Notes
+
+- No bundler in the MVP — TypeScript compiles to `dist/` and `index.html` loads `src/main.js` via ES modules
+- High score is persisted in `localStorage` with graceful degradation
+- Physics runs at 120Hz fixed timestep with 60fps render interpolation
