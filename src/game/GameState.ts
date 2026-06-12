@@ -44,6 +44,8 @@ export type GameEventType =
   | 'TargetHit'
   | 'FlipperHit'
   | 'Drain'
+  | 'RampCompleted'
+  | 'HyperspaceUsed'
   | 'MissionComplete'
   | 'RankUp'
   | 'NewHighScore'
@@ -167,6 +169,20 @@ export class GameState {
     this.emit({ type: 'TargetHit', payload: { id: targetId } });
   }
 
+  onRampCompleted(rampId: string): void {
+    if (this.state.screen !== 'playing' || this.state.tilt.tilted) return;
+    this.addScore(SCORING.rampBonus);
+    this.advanceMissionObjective('complete-ramps');
+    this.emit({ type: 'RampCompleted', payload: { id: rampId } });
+  }
+
+  onHyperspaceUsed(hyperspaceId: string): void {
+    if (this.state.screen !== 'playing' || this.state.tilt.tilted) return;
+    this.addScore(SCORING.hyperspaceBonus);
+    this.advanceMissionObjective('use-hyperspace');
+    this.emit({ type: 'HyperspaceUsed', payload: { id: hyperspaceId } });
+  }
+
   onDrain(): void {
     if (this.state.screen !== 'playing') return;
 
@@ -268,6 +284,13 @@ export class GameState {
   activateMission(missionId: MissionId): void {
     this.state.currentMissionId = missionId;
     this.state.missionProgress = new Map();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Multiplier
+  // ---------------------------------------------------------------------------
+  setMultiplier(x: 1 | 2 | 3 | 5): void {
+    this.state.multiplier = x;
   }
 
   // ---------------------------------------------------------------------------

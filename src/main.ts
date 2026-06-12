@@ -92,6 +92,14 @@ function init(): void {
       case 'FlipperHit':
         audio.play('flipperHit');
         break;
+      case 'RampCompleted':
+        gameState.onRampCompleted(evt.elementId);
+        audio.play('missionComplete');
+        break;
+      case 'HyperspaceUsed':
+        gameState.onHyperspaceUsed(evt.elementId);
+        audio.play('rankUp');
+        break;
       case 'Drain':
         gameState.onDrain();
         audio.play('drain');
@@ -137,6 +145,11 @@ function init(): void {
       if (inputState.tiltPressed) {
         gameState.onTiltInput();
       }
+
+      // Plunger: charge while Space held (plungerCharge > 0), launch on release
+      if (inputState.plungerCharge > 0) {
+        physics.startChargePlunger();
+      }
     }
 
     // Mute toggle
@@ -173,7 +186,7 @@ function init(): void {
     requestAnimationFrame(gameLoop);
   }
 
-  // Space key detection for start/restart
+  // Space key detection for start/restart/plunger
   let spaceWasDown = false;
   window.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.code === 'Space') {
@@ -185,12 +198,19 @@ function init(): void {
         physics.resetBall();
         audio.play('launchBall');
       }
+      // During playing: charging is handled via InputHandler.plungerCharge
     }
   });
 
   window.addEventListener('keyup', (e: KeyboardEvent) => {
     if (e.code === 'Space') {
       spaceWasDown = false;
+      // Release plunger if we were playing and had charge built up
+      const s = gameState.getSnapshot();
+      if (s.screen === 'playing' && physics.getPlungerCharge() > 0) {
+        physics.releasePlunger();
+        audio.play('launchBall');
+      }
     }
   });
 

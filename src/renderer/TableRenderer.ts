@@ -43,8 +43,11 @@ export class TableRenderer {
     this.drawSlingshots(engine);
     this.drawBumpers(engine);
     this.drawTargets();
+    this.drawHyperspaceChute(engine);
     this.drawFlippers(engine);
+    this.drawPlunger(engine);
     this.drawBall(engine, alpha);
+    this.drawHyperspaceFlash(engine);
   }
 
   private drawBackground(): void {
@@ -181,6 +184,92 @@ export class TableRenderer {
       ctx.lineWidth = 1;
       ctx.strokeRect(target.position.x, target.position.y, target.width, target.height);
     }
+  }
+
+  private drawPlunger(engine: PhysicsEngine): void {
+    const { ctx } = this;
+    const charge = engine.getPlungerCharge();
+    const { x, bottomY, topY } = TABLE_CONFIG.plungerLane;
+    const laneH = bottomY - topY;
+
+    // Plunger lane background
+    ctx.fillStyle = '#050d1a';
+    ctx.fillRect(x - 15, topY, 30, laneH);
+
+    // Plunger rod visual (compressed by charge)
+    const rodOffset = charge * 20;
+    ctx.strokeStyle = '#88aacc';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(x, bottomY - 5 + rodOffset);
+    ctx.lineTo(x, bottomY - 25 + rodOffset);
+    ctx.stroke();
+
+    // Charge indicator bar (on the right side of plunger lane)
+    if (charge > 0) {
+      const barX = x + 18;
+      const barH = 60;
+      const barY = bottomY - barH;
+
+      // Background
+      ctx.fillStyle = '#0a1628';
+      ctx.fillRect(barX, barY, 8, barH);
+
+      // Fill — color transitions from green to yellow to red
+      const fillH = barH * charge;
+      const r = Math.round(255 * Math.min(charge * 2, 1));
+      const g = Math.round(255 * Math.min(2 - charge * 2, 1));
+      ctx.fillStyle = `rgb(${r},${g},0)`;
+      ctx.fillRect(barX, barY + barH - fillH, 8, fillH);
+
+      // Border
+      ctx.strokeStyle = '#336699';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(barX, barY, 8, barH);
+    }
+  }
+
+  private drawHyperspaceChute(engine: PhysicsEngine): void {
+    const { ctx } = this;
+    const hyper = TABLE_CONFIG.hyperspaceChute;
+    const { x, y, w, h } = hyper.entryAABB;
+    const active = engine.isHyperspaceEntryFlashing();
+
+    ctx.save();
+    ctx.strokeStyle = active ? '#ff00ff' : '#4433aa';
+    ctx.lineWidth = 2;
+    if (active) {
+      ctx.shadowColor = '#ff00ff';
+      ctx.shadowBlur = 15;
+    }
+    ctx.strokeRect(x, y, w, h);
+
+    // Label
+    ctx.fillStyle = active ? '#ff00ff' : '#443388';
+    ctx.font = 'bold 10px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('HYPERSPACE', x + w / 2, y + h / 2 + 4);
+    ctx.restore();
+  }
+
+  private drawHyperspaceFlash(engine: PhysicsEngine): void {
+    const { ctx } = this;
+    if (!engine.isHyperspaceExitFlashing()) return;
+
+    const exitPos = engine.getHyperspaceExitPos();
+    if (!exitPos) return;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(exitPos.x, exitPos.y, 30, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,0,255,0.25)';
+    ctx.fill();
+    ctx.strokeStyle = '#ff00ff';
+    ctx.lineWidth = 3;
+    ctx.shadowColor = '#ff00ff';
+    ctx.shadowBlur = 20;
+    ctx.stroke();
+    ctx.restore();
   }
 
   private drawBall(engine: PhysicsEngine, alpha: number): void {

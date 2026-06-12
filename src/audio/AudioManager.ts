@@ -10,10 +10,22 @@ export class AudioManager {
   private readonly sound: SoundSynth;
   private readonly music: MusicSynth;
   private muted = false;
+  private contextPrewarmed = false;
 
   constructor() {
     this.sound = new SoundSynth();
     this.music = new MusicSynth();
+    // Register once-listeners to pre-warm AudioContext on first user interaction.
+    // Many browsers block AudioContext creation before a user gesture.
+    // This ensures the context is ready before the first game sound fires.
+    const prewarm = (): void => {
+      if (!this.contextPrewarmed) {
+        this.contextPrewarmed = true;
+        this.sound.prewarm();
+      }
+    };
+    window.addEventListener('keydown', prewarm, { once: true });
+    window.addEventListener('click',   prewarm, { once: true });
   }
 
   play(effect: SoundEffect): void {

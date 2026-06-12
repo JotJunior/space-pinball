@@ -18,7 +18,9 @@ export type PhysicsEventType =
   | 'SlingHit'
   | 'TargetHit'
   | 'Drain'
-  | 'FlipperHit';
+  | 'FlipperHit'
+  | 'RampCompleted'
+  | 'HyperspaceUsed';
 
 export interface PhysicsEvent {
   type: PhysicsEventType;
@@ -35,6 +37,11 @@ export interface PhysicsEngineState {
   ball:     BallState;
   flippers: FlipperState[];
   bumperActiveUntil: Map<string, number>; // id -> timestamp ms
+  plungerCharge: number;  // 0..1, charging while Space held
+  plungerCharging: boolean;
+  hyperspaceFlashUntil: number; // ms timestamp for entry flash
+  hyperspaceExitFlashUntil: number; // ms timestamp for exit flash
+  hyperspaceExitPos: Vec2 | null;
 }
 
 export class PhysicsEngine {
@@ -52,6 +59,11 @@ export class PhysicsEngine {
         createFlipper(f.side, f.pivot, f.length, f.angleRest, f.angleActive)
       ),
       bumperActiveUntil: new Map(),
+      plungerCharge: 0,
+      plungerCharging: false,
+      hyperspaceFlashUntil: 0,
+      hyperspaceExitFlashUntil: 0,
+      hyperspaceExitPos: null,
     };
 
     this.walls = cfg.walls;
@@ -85,6 +97,25 @@ export class PhysicsEngine {
   launchBall(charge: number): void {
     const PLUNGER_MAX_SPEED = 1200; // px/s at full charge (synced with config/physics.ts)
     this.state.ball.vel = { x: 0, y: -(charge * PLUNGER_MAX_SPEED) };
+    this.state.plungerCharge = 0;
+    this.state.plungerCharging = false;
+  }
+
+  /** Start charging the plunger (called while Space is held) */
+  startChargePlunger(): void {
+    this.state.plungerCharging = true;
+  }
+
+  /** Stop charging and launch the ball */
+  releasePlunger(): void {
+    if (this.state.plungerCharging) {
+      this.launchBall(this.state.plungerCharge);
+    }
+  }
+
+  /** Get current plunger charge (0..1) */
+  getPlungerCharge(): number {
+    return this.state.plungerCharge;
   }
 
   /** Reset ball to plunger position */
@@ -95,6 +126,8 @@ export class PhysicsEngine {
       cfg.plungerLane.topY - 20,
       cfg.ballRadius,
     );
+    this.state.plungerCharge = 0;
+    this.state.plungerCharging = false;
   }
 
   /**
@@ -107,6 +140,12 @@ export class PhysicsEngine {
 
     const events: PhysicsEvent[] = [];
     const { ball } = this.state;
+
+    // 0. Update plunger charge
+    const PLUNGER_CHARGE_RATE = 0.8; // 0..1 in ~1.25s
+    if (this.state.plungerCharging) {
+      this.state.plungerCharge = Math.min(1, this.state.plungerCharge + PLUNGER_CHARGE_RATE * dt);
+    }
 
     // 1. Update flippers
     for (const flipper of this.state.flippers) {
@@ -188,6 +227,36 @@ export class PhysicsEngine {
       }
     }
 
+    // 9a. Check ramp entry
+    for (const ramp of TABLE_CONFIG.ramps) {
+      const { x, y, w, h } = ramp.entryAABB;
+      if (ball.pos.x >= x && ball.pos.x <= x + w &&
+          ball.pos.y >= y && ball.pos.y <= y + h) {
+        // Teleport ball to ramp exit
+        ball.pos = { ...ramp.exitPos };
+        ball.prevPos = { ...ramp.exitPos };
+        ball.vel = { ...ramp.exitVel };
+        events.push({ type: 'RampCompleted', elementId: ramp.id, contactPoint: ramp.exitPos });
+      }
+    }
+
+    // 9b. Check hyperspace chute entry
+    const hyper = TABLE_CONFIG.hyperspaceChute;
+    const { x: hx, y: hy, w: hw, h: hh } = hyper.entryAABB;
+    if (ball.pos.x >= hx && ball.pos.x <= hx + hw &&
+        ball.pos.y >= hy && ball.pos.y <= hy + hh) {
+      // Pick random exit
+      const exitIdx = Math.floor(Math.random() * hyper.exitOptions.length);
+      const exitPos = hyper.exitOptions[exitIdx]!;
+      this.state.hyperspaceFlashUntil = this.timeMs + 300;
+      this.state.hyperspaceExitFlashUntil = this.timeMs + 600;
+      this.state.hyperspaceExitPos = exitPos;
+      ball.pos = { ...exitPos };
+      ball.prevPos = { ...exitPos };
+      ball.vel = { x: 0, y: 300 }; // gentle downward launch from exit
+      events.push({ type: 'HyperspaceUsed', elementId: hyper.id, contactPoint: exitPos });
+    }
+
     // 9. Check drain
     if (ball.pos.y >= TABLE_CONFIG.drainY) {
       events.push({ type: 'Drain', elementId: 'drain', contactPoint: ball.pos });
@@ -207,5 +276,20 @@ export class PhysicsEngine {
   isBumperActive(id: string): boolean {
     const until = this.state.bumperActiveUntil.get(id);
     return until !== undefined && this.timeMs < until;
+  }
+
+  /** Is hyperspace entry flashing? */
+  isHyperspaceEntryFlashing(): boolean {
+    return this.timeMs < this.state.hyperspaceFlashUntil;
+  }
+
+  /** Is hyperspace exit flashing? */
+  isHyperspaceExitFlashing(): boolean {
+    return this.timeMs < this.state.hyperspaceExitFlashUntil;
+  }
+
+  /** Last hyperspace exit position (for rendering flash) */
+  getHyperspaceExitPos(): Vec2 | null {
+    return this.state.hyperspaceExitPos;
   }
 }

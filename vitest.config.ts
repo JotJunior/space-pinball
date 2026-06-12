@@ -5,7 +5,8 @@ export default defineConfig({
     environment: 'node',
     coverage: {
       provider: 'v8',
-      include: ['src/physics/**'],
+      include: ['src/physics/**', 'src/game/**'],
+      exclude: ['src/game/InputHandler.ts'],
       reporter: ['text', 'lcov'],
       thresholds: {
         lines: 70,

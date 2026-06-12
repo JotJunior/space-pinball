@@ -83,6 +83,14 @@ export class SoundSynth {
     }
   }
 
+  /** Pre-warm: create and resume AudioContext on first user gesture. */
+  prewarm(): void {
+    const ctx = this.getCtx();
+    if (ctx && ctx.state === 'suspended') {
+      void ctx.resume();
+    }
+  }
+
   play(effect: SoundEffect): void {
     if (this.muted) return;
     const ctx = this.getCtx();

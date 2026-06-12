@@ -40,6 +40,21 @@ export interface TargetConfig {
   scoreValue: number;
 }
 
+export interface RampConfig {
+  id: string;
+  entryAABB: { x: number; y: number; w: number; h: number };
+  exitPos: Vec2;
+  exitVel: Vec2;
+  scoreValue: number;
+}
+
+export interface HyperspaceConfig {
+  id: string;
+  entryAABB: { x: number; y: number; w: number; h: number };
+  exitOptions: Vec2[];
+  scoreValue: number;
+}
+
 export interface TableConfig {
   width: number;
   height: number;
@@ -51,6 +66,8 @@ export interface TableConfig {
   flippers: FlipperConfig[];
   targets: TargetConfig[];
   walls: Array<{ start: Vec2; end: Vec2 }>;
+  ramps: RampConfig[];
+  hyperspaceChute: HyperspaceConfig;
 }
 
 export const TABLE_CONFIG: TableConfig = {
@@ -121,4 +138,27 @@ export const TABLE_CONFIG: TableConfig = {
     // Plunger lane left wall
     { start: { x: 520, y: 780 }, end: { x: 520, y: 875 } },
   ],
+
+  // Ramp: upper-left area leads to re-entry at top-center
+  ramps: [
+    {
+      id: 'ramp-main',
+      entryAABB: { x: 60, y: 400, w: 80, h: 60 },
+      exitPos:   { x: 300, y: 80 },
+      exitVel:   { x: 100, y: 200 },
+      scoreValue: 1000,
+    },
+  ],
+
+  // Hyperspace chute: upper-right entry, exits at various points
+  hyperspaceChute: {
+    id: 'hyperspace',
+    entryAABB: { x: 440, y: 60, w: 100, h: 60 },
+    exitOptions: [
+      { x: 150, y: 400 },
+      { x: 300, y: 500 },
+      { x: 450, y: 400 },
+    ],
+    scoreValue: 500,
+  },
 };
