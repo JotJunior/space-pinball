@@ -1,6 +1,6 @@
 # Space Cadet Pinball (Web)
 
-A TypeScript + Canvas 2D reimplementation of the classic Windows XP Space Cadet 3D Pinball.
+A TypeScript + Canvas 2D pinball game inspired by the classic Windows XP Space Cadet 3D Pinball — not a faithful port, but its own take with a distinct space-themed table.
 
 > **Note:** This project contains no original assets from the Windows XP game. All graphics,
 > audio, and code are original implementations inspired by the gameplay.
