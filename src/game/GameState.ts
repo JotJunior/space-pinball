@@ -46,6 +46,8 @@ export type GameEventType =
   | 'Drain'
   | 'RampCompleted'
   | 'HyperspaceUsed'
+  | 'DropTargetHit'
+  | 'DropTargetBankComplete'
   | 'MissionComplete'
   | 'RankUp'
   | 'NewHighScore'
@@ -167,6 +169,19 @@ export class GameState {
     this.addScore(SCORING.targetHit);
     this.advanceMissionObjective('hit-targets');
     this.emit({ type: 'TargetHit', payload: { id: targetId } });
+  }
+
+  onDropTargetHit(targetId: string): void {
+    if (this.state.screen !== 'playing' || this.state.tilt.tilted) return;
+    this.addScore(SCORING.dropTargetHit);
+    this.advanceMissionObjective('hit-targets');
+    this.emit({ type: 'DropTargetHit', payload: { id: targetId } });
+  }
+
+  onDropTargetBankComplete(bankId: string): void {
+    if (this.state.screen !== 'playing' || this.state.tilt.tilted) return;
+    this.addScore(SCORING.dropTargetBankBonus);
+    this.emit({ type: 'DropTargetBankComplete', payload: { id: bankId } });
   }
 
   onRampCompleted(rampId: string): void {

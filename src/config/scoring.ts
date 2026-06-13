@@ -12,6 +12,8 @@ export const SCORING = {
   rampBonus: 2500,
   hyperspaceBonus: 5000,
   flightBonus: 1000,       // per second of continuous flight without drain
+  dropTargetHit: 500,      // cada plaquinha do arco superior-esquerdo
+  dropTargetBankBonus: 10000, // bônus ao derrubar as 6 plaquinhas
 } as const;
 
 export const GAME = {

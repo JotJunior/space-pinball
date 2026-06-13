@@ -50,9 +50,67 @@ export interface RampConfig {
 
 export interface HyperspaceConfig {
   id: string;
-  entryAABB: { x: number; y: number; w: number; h: number };
+  center: Vec2;   // centro do buraco negro — gatilho CIRCULAR (== disco visível)
+  radius: number; // raio do disco de contato
   exitOptions: Vec2[];
   scoreValue: number;
+}
+
+/**
+ * Kicker (kickback) das saídas inferiores. A bola que cai na "cova" em V no
+ * fundo de cada gutter (onde a parede do gutter encontra a guia da inlane e o
+ * divisor do dreno) ficava presa acima do dreno. Estes kickers detectam a bola
+ * na zona e a relançam PARA CIMA automaticamente, em vez de exigir o lançador.
+ */
+export interface KickerConfig {
+  id: string;
+  triggerAABB: { x: number; y: number; w: number; h: number };
+  ejectVel: Vec2;
+  apex: Vec2; // ponto da cova (para renderização do obstáculo visível)
+}
+
+/**
+ * Banco de "plaquinhas" (drop targets) dispostas em meio-arco no canto
+ * superior-esquerdo, acompanhando a curva desenhada na mesa. Cada plaquinha é
+ * derrubada quando atingida; ao derrubar todas, o jogador ganha um bônus e
+ * elas voltam ao estado original.
+ */
+export interface DropTargetConfig {
+  id: string;
+  center: Vec2;
+  normal: Vec2;     // unitário, aponta para o lado de onde a bola vem (centro do arco)
+  halfWidth: number;
+}
+
+export interface DropTargetBankConfig {
+  id: string;
+  center: Vec2;     // centro do arco (referência/render)
+  radius: number;
+  targets: DropTargetConfig[];
+}
+
+/** Gera N plaquinhas igualmente espaçadas ao longo de um arco. */
+function buildArcDropTargets(
+  center: Vec2,
+  radius: number,
+  startDeg: number,
+  endDeg: number,
+  count: number,
+  halfWidth: number,
+): DropTargetConfig[] {
+  const out: DropTargetConfig[] = [];
+  for (let i = 0; i < count; i++) {
+    const t = count === 1 ? 0 : i / (count - 1);
+    const rad = ((startDeg + (endDeg - startDeg) * t) * Math.PI) / 180;
+    const dir = { x: Math.cos(rad), y: Math.sin(rad) };
+    out.push({
+      id: `drop-${i + 1}`,
+      center: { x: center.x + dir.x * radius, y: center.y + dir.y * radius },
+      normal: { x: -dir.x, y: -dir.y }, // face voltada ao centro do arco (lado do jogo)
+      halfWidth,
+    });
+  }
+  return out;
 }
 
 export interface TableConfig {
@@ -68,6 +126,8 @@ export interface TableConfig {
   walls: Array<{ start: Vec2; end: Vec2 }>;
   ramps: RampConfig[];
   hyperspaceChute: HyperspaceConfig;
+  kickers: KickerConfig[];
+  dropTargetBank: DropTargetBankConfig;
 }
 
 export const TABLE_CONFIG: TableConfig = {
@@ -96,22 +156,25 @@ export const TABLE_CONFIG: TableConfig = {
     },
   ],
 
+  // Pivos em y=810 e repouso a 27°: a PONTA em repouso fica em y~864.5 — a
+  // bola apoiada nela (centro ~852) permanece ACIMA do drainY=875. Com o
+  // antigo 36°/y=820 a ponta caia em y~890 e a bola "vazava" pelo flipper.
   flippers: [
     {
       id: 'flipper-left',
       side: 'left',
-      pivot: { x: 180, y: 820 },
+      pivot: { x: 180, y: 810 },
       length: 120,
-      angleRest:   Math.PI * 0.2,   // ~36° angled down
-      angleActive: -Math.PI * 0.2,  // ~-36° angled up
+      angleRest:   Math.PI * 0.15,  // ~27° angled down
+      angleActive: -Math.PI * 0.15, // ~-27° angled up
     },
     {
       id: 'flipper-right',
       side: 'right',
-      pivot: { x: 420, y: 820 },
+      pivot: { x: 420, y: 810 },
       length: 120,
-      angleRest:   Math.PI * 0.8,   // ~144° angled down
-      angleActive: Math.PI * 1.2,   // angled up
+      angleRest:   Math.PI * 0.85,  // ~153° (espelho de 27° down)
+      angleActive: Math.PI * 1.15,  // angled up
     },
   ],
 
@@ -124,41 +187,77 @@ export const TABLE_CONFIG: TableConfig = {
   walls: [
     // Left wall
     { start: { x: 40,  y: 0   }, end: { x: 40,  y: 780 } },
-    // Right wall (excluding plunger lane)
-    { start: { x: 560, y: 0   }, end: { x: 560, y: 780 } },
+    // Right wall (full height: also encloses the plunger lane on the right)
+    { start: { x: 560, y: 0   }, end: { x: 560, y: 875 } },
     // Top wall
     { start: { x: 40,  y: 0   }, end: { x: 560, y: 0   } },
+    // Top-right corner deflector: curves the launched ball out of the
+    // plunger corridor into the playfield (like the original's arc guide)
+    { start: { x: 490, y: 0   }, end: { x: 560, y: 60  } },
     // Left gutter wall
     { start: { x: 40,  y: 780 }, end: { x: 140, y: 850 } },
-    // Right gutter wall
-    { start: { x: 560, y: 780 }, end: { x: 460, y: 850 } },
+    // Right gutter wall (starts at the plunger lane inner wall — must NOT cross the lane)
+    { start: { x: 520, y: 780 }, end: { x: 460, y: 850 } },
     // Center drain divider
     { start: { x: 140, y: 850 }, end: { x: 140, y: 875 } },
     { start: { x: 460, y: 850 }, end: { x: 460, y: 875 } },
     // Plunger lane left wall
     { start: { x: 520, y: 780 }, end: { x: 520, y: 875 } },
+    // Plunger lane floor (keeps the resting ball above drainY=875)
+    { start: { x: 520, y: 875 }, end: { x: 560, y: 875 } },
+    // Inlane guides: conectam o fim dos gutters aos pivos dos flippers,
+    // entregando a bola SOBRE o flipper (sem vazar por baixo do pivo)
+    { start: { x: 140, y: 850 }, end: { x: 178, y: 812 } },
+    { start: { x: 460, y: 850 }, end: { x: 422, y: 812 } },
   ],
 
-  // Ramp: upper-left area leads to re-entry at top-center
-  ramps: [
-    {
-      id: 'ramp-main',
-      entryAABB: { x: 60, y: 400, w: 80, h: 60 },
-      exitPos:   { x: 300, y: 80 },
-      exitVel:   { x: 100, y: 200 },
-      scoreValue: 1000,
-    },
-  ],
+  // Sem ramps: a antiga "ramp" era um AABB INVISÍVEL no lado esquerdo
+  // (x60-140, y400-460) que teleportava a bola para o topo — exatamente o
+  // "comportamento de buraco negro" que o jogador via num ponto sem elemento.
+  // Teleporte agora só ocorre ao encostar no buraco negro (hyperspace) visível.
+  ramps: [],
 
-  // Hyperspace chute: upper-right entry, exits at various points
+  // Buraco negro (hyperspace): disco circular no quadrante superior-direito,
+  // posicionado FORA da trajetória de lançamento (a bola sobe pela lane x=540 e
+  // deflete para a esquerda pela faixa y~60). center=(478,150) fica abaixo
+  // dessa faixa e à esquerda da lane, então só ativa ao ENCOSTAR no disco.
   hyperspaceChute: {
     id: 'hyperspace',
-    entryAABB: { x: 440, y: 60, w: 100, h: 60 },
+    center: { x: 478, y: 150 },
+    radius: 38,
     exitOptions: [
       { x: 150, y: 400 },
       { x: 300, y: 500 },
       { x: 450, y: 400 },
     ],
     scoreValue: 500,
+  },
+
+  // Kickers das covas inferiores (cusps em (140,850) e (460,850)). A zona
+  // cobre a bola em repouso (centro ~y838). ejectVel sobe e desvia para o
+  // centro, tirando a bola do divisor do dreno e devolvendo-a ao jogo.
+  kickers: [
+    {
+      id: 'kicker-left',
+      triggerAABB: { x: 115, y: 818, w: 52, h: 52 },
+      ejectVel: { x: 260, y: -680 },
+      apex: { x: 140, y: 850 },
+    },
+    {
+      id: 'kicker-right',
+      triggerAABB: { x: 433, y: 818, w: 52, h: 52 },
+      ejectVel: { x: -260, y: -680 },
+      apex: { x: 460, y: 850 },
+    },
+  ],
+
+  // Barreira de 6 plaquinhas em meio-arco no canto superior-esquerdo,
+  // acompanhando a curva da mesa. center/radius/ângulos calibrados contra a
+  // arte de fundo (task de calibração visual).
+  dropTargetBank: {
+    id: 'top-left-arc',
+    center: { x: 330, y: 250 },
+    radius: 230,
+    targets: buildArcDropTargets({ x: 330, y: 250 }, 230, 188, 250, 6, 18),
   },
 };

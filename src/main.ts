@@ -74,6 +74,12 @@ function init(): void {
   const hudRenderer    = new HUDRenderer(ctx);
   const screenRenderer = new ScreenRenderer(ctx);
 
+  // Hook de inspecao para testes e2e (Playwright) — read-only
+  (window as unknown as Record<string, unknown>)['__pinball'] = {
+    getBall: () => ({ ...physics.getState().ball.pos }),
+    getSnapshot: () => gameState.getSnapshot(),
+  };
+
   // Wire physics events → game state + audio
   physics.on((evt) => {
     switch (evt.type) {
@@ -99,6 +105,17 @@ function init(): void {
       case 'HyperspaceUsed':
         gameState.onHyperspaceUsed(evt.elementId);
         audio.play('rankUp');
+        break;
+      case 'KickbackUsed':
+        audio.play('launchBall');
+        break;
+      case 'DropTargetHit':
+        gameState.onDropTargetHit(evt.elementId);
+        audio.play('targetHit');
+        break;
+      case 'DropTargetBankComplete':
+        gameState.onDropTargetBankComplete(evt.elementId);
+        audio.play('missionComplete');
         break;
       case 'Drain':
         gameState.onDrain();
