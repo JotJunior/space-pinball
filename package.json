@@ -1,8 +1,10 @@
 {
   "name": "space-cadet-pinball",
   "version": "1.0.0",
-  "description": "Space Cadet Pinball reimplementation in TypeScript + Canvas 2D",
+  "description": "Space Cadet Pinball-inspired game in TypeScript + Canvas 2D",
   "type": "module",
+  "license": "MIT",
+  "author": "João Zanon (JotJunior)",
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
