@@ -89,6 +89,20 @@ export interface DropTargetBankConfig {
   targets: DropTargetConfig[];
 }
 
+/**
+ * Converte uma polilinha (lista de pontos) em segmentos de parede consecutivos.
+ * Usado para que as barreiras laterais ACOMPANHEM as curvas pintadas na mesa
+ * (arco superior, laterais arredondadas, trilho/swoosh do plunger) em vez de
+ * usar paredes retas que a bola "atravessava" visualmente nas curvas.
+ */
+function wallChain(points: Vec2[]): Array<{ start: Vec2; end: Vec2 }> {
+  const out: Array<{ start: Vec2; end: Vec2 }> = [];
+  for (let i = 0; i < points.length - 1; i++) {
+    out.push({ start: points[i]!, end: points[i + 1]! });
+  }
+  return out;
+}
+
 /** Gera N plaquinhas igualmente espaçadas ao longo de um arco. */
 function buildArcDropTargets(
   center: Vec2,
@@ -184,18 +198,92 @@ export const TABLE_CONFIG: TableConfig = {
     { id: 'target-atf-3', position: { x: 300, y: 320 }, width: 20, height: 8, scoreValue: 500 },
   ],
 
+  // Barreiras laterais traçadas a partir da arte (assets/table-bg.jpg):
+  // seguem o contorno neon/metálico curvo do playfield em vez de retas, para
+  // a bola NÃO "passar por cima" da borda pintada nas curvas.
   walls: [
-    // Left wall
-    { start: { x: 40,  y: 0   }, end: { x: 40,  y: 780 } },
-    // Right wall (full height: also encloses the plunger lane on the right)
-    { start: { x: 560, y: 0   }, end: { x: 560, y: 875 } },
-    // Top wall
-    { start: { x: 40,  y: 0   }, end: { x: 560, y: 0   } },
-    // Top-right corner deflector: curves the launched ball out of the
-    // plunger corridor into the playfield (like the original's arc guide)
-    { start: { x: 490, y: 0   }, end: { x: 560, y: 60  } },
+    // ----- Borda ESQUERDA: parede prateada INTERNA curva (cabaça) -----
+    // A bola colide com a PAREDE INTERNA curva do playfield (não a barra
+    // externa reta): domo no topo → CINTURA que avança até ~x72 em y385 →
+    // recua → corpo inferior (~x31) → gutter. (A barra metálica externa fica
+    // ATRÁS desta parede; o anel de Saturno é decoração de piso.)
+    ...wallChain([
+      { x: 300, y: 21  }, // ápice do arco (compartilhado com a borda direita)
+      { x: 232, y: 25  },
+      { x: 168, y: 31  },
+      { x: 120, y: 42  },
+      { x: 90,  y: 55  },
+      { x: 72,  y: 69  },
+      { x: 54,  y: 90  },
+      { x: 42,  y: 114 },
+      { x: 34,  y: 135 }, // base do domo
+      { x: 34,  y: 175 },
+      { x: 36,  y: 235 },
+      { x: 40,  y: 270 },
+      { x: 46,  y: 295 }, // cintura: subindo
+      { x: 55,  y: 315 },
+      { x: 62,  y: 330 },
+      { x: 71,  y: 345 },
+      { x: 78,  y: 362 },
+      { x: 79,  y: 375 }, // ápice da cintura (borda do trilho, ponto mais interno)
+      { x: 74,  y: 392 },
+      { x: 69,  y: 408 },
+      { x: 65,  y: 425 },
+      { x: 62,  y: 450 },
+      { x: 60,  y: 490 },
+      { x: 56,  y: 515 },
+      { x: 49,  y: 535 },
+      { x: 41,  y: 555 },
+      { x: 35,  y: 575 }, // cintura: recuando
+      { x: 32,  y: 600 }, // corpo inferior
+      { x: 31,  y: 660 },
+      { x: 31,  y: 710 },
+      { x: 29,  y: 750 },
+      { x: 27,  y: 780 }, // início do gutter
+    ]),
+
+    // ----- Borda SUPERIOR-DIREITA: arco → defletor → parede externa -----
+    // Do ápice, o arco desce pelo canto superior-direito e vira o defletor
+    // que arremessa a bola para a ESQUERDA, para fora do corredor do plunger;
+    // segue como a parede externa direita (que também fecha o canal do plunger).
+    ...wallChain([
+      { x: 300, y: 21  }, // ápice (compartilhado)
+      { x: 372, y: 23  },
+      { x: 432, y: 27  },
+      { x: 474, y: 33  },
+      { x: 508, y: 46  },
+      { x: 536, y: 70  },
+      { x: 556, y: 108 },
+      { x: 560, y: 150 },
+      { x: 560, y: 875 }, // parede externa direita / canal do plunger
+    ]),
+
+    // ----- Swoosh do plunger: trilho livre que divide playfield × canal -----
+    // Borda esquerda do trilho prateado = limite direito do playfield, que
+    // INCHA para dentro (~x483 em y355) acompanhando a curva pintada — antes
+    // era reta em ~x518 e a bola encostava no metal do trilho.
+    // O topo começa em y150 à direita do buraco negro (478,150,r38) p/ não
+    // cruzá-lo, e deixa o canal aberto p/ a bola lançada sair à esquerda.
+    ...wallChain([
+      { x: 474, y: 196 }, // logo abaixo do buraco negro (478,150,r38)
+      { x: 470, y: 225 },
+      { x: 468, y: 252 },
+      { x: 467, y: 282 }, // ponto mais interno do trilho
+      { x: 467, y: 312 },
+      { x: 468, y: 340 },
+      { x: 471, y: 368 },
+      { x: 476, y: 400 },
+      { x: 484, y: 445 },
+      { x: 492, y: 490 },
+      { x: 499, y: 535 },
+      { x: 506, y: 585 },
+      { x: 512, y: 635 },
+      { x: 517, y: 690 },
+      { x: 520, y: 780 },
+    ]),
+
     // Left gutter wall
-    { start: { x: 40,  y: 780 }, end: { x: 140, y: 850 } },
+    { start: { x: 27,  y: 780 }, end: { x: 140, y: 850 } },
     // Right gutter wall (starts at the plunger lane inner wall — must NOT cross the lane)
     { start: { x: 520, y: 780 }, end: { x: 460, y: 850 } },
     // Center drain divider
