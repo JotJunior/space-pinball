@@ -3,7 +3,7 @@
  * Ref: plan.md §Flipper Physics; spec.md FR-002
  */
 
-import { Vec2, Segment, add, scale, sub } from './shapes.js';
+import { Vec2, Segment, add, sub, dot } from './shapes.js';
 import { BallState } from './Ball.js';
 import { resolveCollision, separateBall, circleVsSegment, surfaceVelocity } from './collision.js';
 
@@ -19,9 +19,6 @@ export interface FlipperState {
   angleActive: number;  // pressed angle
   pressed:     boolean;
 }
-
-// Transfer factor: how much of the flipper surface velocity transfers to the ball
-const TRANSFER_FACTOR = 0.7;
 
 /**
  * Creates flipper state from config values.
@@ -100,20 +97,30 @@ export function resolveFlipperCollision(
 
   if (!result.hit) return false;
 
-  // Positional correction
+  // Positional correction (sempre — mantém a bola fora da superfície)
   ball.pos = separateBall(ball.pos, result.normal, result.penetration);
 
   // Surface velocity of the flipper at contact point
   const vSurf = surfaceVelocity(result.contactPoint, flipper.pivot, flipper.angularVel);
 
   // Relative velocity of ball w.r.t. flipper surface
-  const vRel = sub(ball.vel, vSurf);
+  const vRel  = sub(ball.vel, vSurf);
+  const vRelN = dot(vRel, result.normal);
 
-  // Reflect relative velocity
+  // IDEMPOTÊNCIA: só aplica impulso quando a bola está se APROXIMANDO da
+  // superfície (componente normal relativa < 0). Como a separação deixa uma
+  // folga (slop), o mesmo contato é detectado em vários sub-steps; sem esta
+  // guarda, os sub-steps em que a bola já se afasta re-aplicavam a fórmula e
+  // SUBTRAÍAM a velocidade da superfície a cada vez — "trito" de alguns ms que
+  // enfraquecia a rebatida. Agora o impulso é entregue UMA vez, limpo e forte.
+  if (vRelN >= 0) return true;
+
+  // Reflete a componente normal relativa e re-soma a velocidade TOTAL da
+  // superfície. Esta forma é idempotente: re-aplicá-la quando vRelN>=0 seria
+  // no-op (vRel+vSurf == ball.vel). Usar a velocidade total (sem fator de
+  // amortecimento) entrega uma batida crispa e energética.
   const vRelReflected = resolveCollision(vRel, result.normal, restitution);
-
-  // New ball velocity = reflected relative + flipper surface velocity (scaled by transfer)
-  ball.vel = add(vRelReflected, scale(vSurf, TRANSFER_FACTOR));
+  ball.vel = add(vRelReflected, vSurf);
 
   return true;
 }
