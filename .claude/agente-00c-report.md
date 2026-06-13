@@ -1,7 +1,7 @@
 # Relatorio do Agente-00C — exec-2026-06-12T14-15-08Z-agente-00c-space-cadet-pinball
 
-**Gerado em**: 2026-06-12T15:31:30Z
-**Status no momento**: em_andamento
+**Gerado em**: 2026-06-13T15:35:05Z
+**Status no momento**: concluida
 **Versao do schema**: 1.0.0
 
 ---
@@ -14,19 +14,19 @@
 | Projeto-Alvo | <project-root> |
 | Descricao | crie uma versão html do jogo pinball Space Cadet (do Windows XP). Use a mesma identidade visual e funcionalidades. Pesquise google ou outra ferramenta de busca necessária |
 | Stack final | TypeScript strict + Canvas 2D + Web Audio API + localStorage + ES modules |
-| Status | em_andamento |
-| Motivo termino | (em andamento) |
+| Status | concluida |
+| Motivo termino | feature_mvp_concluida |
 | Iniciada em | 2026-06-12T14:15:08Z |
-| Terminada em | ainda em andamento |
-| Ondas executadas | 3 |
+| Terminada em | 2026-06-12T15:39:40Z |
+| Ondas executadas | 4 |
 | Tool calls totais | 32 |
-| Decisoes registradas | 37 |
+| Decisoes registradas | 41 |
 | Bloqueios humanos | 0 |
 | Sugestoes para skills globais | 0 |
 | Issues abertas no toolkit | 0 |
 | Profundidade max de subagentes | 2 |
 
-Onda-003: Concluida implementacao de todas as features de codigo do Space Cadet Pinball. Plunger com charge visual, hyperspace chute com teletransporte aleatorio e flash, 36 testes novos (missions.test.ts + scoring.test.ts), AudioContext pre-warm, calibracao de fisica. 85 testes passando, tsc exit 0, cobertura src/game/=94.29% src/physics/=91.79%. Restam 12 tarefas de playtest/cross-browser que requerem execucao manual pelo operador.
+Execucao concluida (feature_mvp_concluida) em 4 ondas: MVP do Space Cadet Pinball (web) entregue — engine de fisica fixed-timestep 120Hz com sub-stepping anti-tunneling, 9 missoes em state machine, audio procedural via Web Audio, HUD e high score em localStorage; 85 testes verdes e tsc exit 0 no fechamento. As 12 tarefas finais eram de playtest/cross-browser (validacao humana) e foram tratadas em sessao manual posterior, que tambem adicionou a arte da mesa e os elementos interativos (gerados via IA) e aplicou diversas correcoes de fisica/jogabilidade.
 
 ## 2. Linha do Tempo
 
@@ -35,17 +35,18 @@ Onda-003: Concluida implementacao de todas as features de codigo do Space Cadet 
 | onda-001 | 2026-06-12T14:15:57Z | 2026-06-12T14:48:21Z | create-tasks | 22 | 1944s | etapa_concluida_avancando |
 | onda-002 | 2026-06-12T14:54:52Z | 2026-06-12T15:12:36Z |  | 9 | 1064s | etapa_concluida_avancando |
 | onda-003 | 2026-06-12T15:19:35Z | 2026-06-12T15:31:08Z |  | 1 | 693s | etapa_concluida_avancando |
+| onda-004 | 2026-06-12T15:36:38Z | 2026-06-12T15:39:34Z |  | 0 | 176s | etapa_concluida_avancando |
 
 ## 3. Decisoes
 
-Total: 37 decisoes registradas.
+Total: 41 decisoes registradas.
 
 ### 3.1 Por agente
 
 | Agente | Quantidade |
 |--------|------------|
-| agente-00c-feature-orchestrator | 3 |
-| agente-00c-orchestrator | 12 |
+| agente-00c-feature-orchestrator | 4 |
+| agente-00c-orchestrator | 15 |
 | clarify-answerer | 3 |
 | orquestrador-00c | 19 |
 
@@ -643,6 +644,70 @@ Total: 37 decisoes registradas.
 
 **Artefato originador**: (nenhum)
 
+#### dec-038 — model-routing — agente-00c-feature-orchestrator — 2026-06-12T15:36:11Z
+
+**Contexto**: Selecao de modelo para onda 3 (fase review-task)
+
+**Opcoes consideradas**: haiku / sonnet / opus / manter-atual
+
+**Escolha**: model:haiku
+
+**Justificativa**: sugerido=haiku aplicado=haiku origem=mapa | faixa=rasa fase=review-task (mapa primario)
+
+**Score**: 0
+
+**Referencias**: (nenhuma)
+
+**Artefato originador**: (nenhum)
+
+#### dec-039 — review-task — agente-00c-orchestrator — 2026-06-12T15:37:18Z
+
+**Contexto**: Reconciliacao de .tasks[] ↔ tasks.md realizada: 17 tasks concluidas em tasks.md estavam ausentes de .tasks[] (orquestrador pulou record-task durante execute-task). Back-filled via reconcile-tasks.
+
+**Opcoes consideradas**: aceitar-reconcile / investigar-orquestre-logs
+
+**Escolha**: aceitar-reconcile
+
+**Justificativa**: Completude critical para ingestao na knowledge.db; reconcile-tasks e determinisico (idempotente, so grava concluidas). Origem de back-fill sera anotada em .tasks[].origem para auditoria posterior.
+
+**Score**: 2
+
+**Referencias**: (nenhuma)
+
+**Artefato originador**: (nenhum)
+
+#### dec-040 — review-task — agente-00c-orchestrator — 2026-06-12T15:38:16Z
+
+**Contexto**: 12 tarefas pendentes auditadas: 100% sao playtest/QA browser-only (impossivel automatizar). 1.3.5 (FPS), 7.5.2-7.5.5 (calibracao geometrica + UX), 8.1.x (performance), 8.2.x (cross-browser).
+
+**Opcoes consideradas**: marcar-como-pendencia-humana / agendar-playtest-futuro / abortar-feature
+
+**Escolha**: marcar-como-pendencia-humana
+
+**Justificativa**: Todas as 12 requerem execucao humana em browser (nao sao bugs, sao QA/calibracao). Orquestrador nao pode prosseguir; necessario pause para humano fazer playtest e calibracao de geometria.
+
+**Score**: 3
+
+**Referencias**: (nenhuma)
+
+**Artefato originador**: (nenhum)
+
+#### dec-041 — review-features — agente-00c-orchestrator — 2026-06-12T15:39:22Z
+
+**Contexto**: Portfolio de features analisado: 1 feature (space-cadet-pinball), 93% concluida, 12 pendentes (100% playtest/QA browser-only). Sugestao: CONTINUAR → PLAYTEST → CONCLUSAO.
+
+**Opcoes consideradas**: marcar-concluido / estender-para-pos-mvp
+
+**Escolha**: marcar-concluido
+
+**Justificativa**: Feature atingiu MVP completo (todas fases do SDD, codigo-ready, testes passando). Pendentes sao validacao humana (fora do escopo do agente). Execucao do agente-00c esta concluida.
+
+**Score**: 3
+
+**Referencias**: (nenhuma)
+
+**Artefato originador**: (nenhum)
+
 
 ## 4. Bloqueios Humanos
 
@@ -682,7 +747,7 @@ Nenhuma sugestao para skills globais nesta execucao.
 
 ## 6. Licoes Aprendidas
 
-(Sera preenchido no relatorio final.)
+Sub-stepping anti-tunneling foi indispensavel para colisoes estaveis a 120Hz. Constantes de fisica e geometria da mesa exigem calibracao por playtest humano — nao automatizavel pela pipeline. A resolucao de colisao precisa ser idempotente: re-aplicar o impulso em sub-steps de contato sapava energia (origem do bug de batida fraca do flipper, corrigido depois).
 
 ---
 
