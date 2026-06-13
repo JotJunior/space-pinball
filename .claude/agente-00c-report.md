@@ -11,7 +11,7 @@
 | Campo | Valor |
 |-------|-------|
 | ID Execucao | exec-2026-06-12T14-15-08Z-agente-00c-space-cadet-pinball |
-| Projeto-Alvo | /Users/jot/Projects/_lab/Jot/space-pinball |
+| Projeto-Alvo | <project-root> |
 | Descricao | crie uma versão html do jogo pinball Space Cadet (do Windows XP). Use a mesma identidade visual e funcionalidades. Pesquise google ou outra ferramenta de busca necessária |
 | Stack final | TypeScript strict + Canvas 2D + Web Audio API + localStorage + ES modules |
 | Status | em_andamento |
@@ -688,9 +688,9 @@ Nenhuma sugestao para skills globais nesta execucao.
 
 **Apendice A — Caminhos relevantes**
 
-- Estado: `/Users/jot/Projects/_lab/Jot/space-pinball/.claude/agente-00c-state/state.json`
-- Backups de estado: `/Users/jot/Projects/_lab/Jot/space-pinball/.claude/agente-00c-state/state-history/`
-- Sugestoes detalhadas: `/Users/jot/Projects/_lab/Jot/space-pinball/.claude/agente-00c-suggestions.md`
-- Whitelist: `/Users/jot/Projects/_lab/Jot/space-pinball/.claude/agente-00c-whitelist`
-- Artefatos da pipeline: `/Users/jot/Projects/_lab/Jot/space-pinball/docs/specs/<feature>/`
+- Estado: `<project-root>/.claude/agente-00c-state/state.json`
+- Backups de estado: `<project-root>/.claude/agente-00c-state/state-history/`
+- Sugestoes detalhadas: `<project-root>/.claude/agente-00c-suggestions.md`
+- Whitelist: `<project-root>/.claude/agente-00c-whitelist`
+- Artefatos da pipeline: `<project-root>/docs/specs/<feature>/`
 
