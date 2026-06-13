@@ -259,6 +259,13 @@ export class TableRenderer {
         ctx.save();
         ctx.translate(flipper.pivot.x, flipper.pivot.y);
         ctx.rotate(flipper.angle); // eixo do sprite é +x → ângulo direto
+        // O flipper direito aponta para a esquerda (ângulo ~153°): rotacionar
+        // o sprite o vira de cabeça pra baixo (serrilhado/face no lado errado).
+        // Espelhar no eixo local hub→ponta o torna IMAGEM ESPELHADA do esquerdo
+        // (como flippers reais). O hub fica em y=0, então a âncora não muda.
+        if (flipper.side === 'right') {
+          ctx.scale(1, -1);
+        }
         if (flipper.pressed) {
           ctx.shadowColor = COLORS.flipperStroke;
           ctx.shadowBlur = 12;
